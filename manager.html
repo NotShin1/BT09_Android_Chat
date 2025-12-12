@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Manager Chat Support</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        #chat-log { height: 300px; border: 1px solid #ccc; overflow-y: scroll; padding: 10px; margin-bottom: 10px; }
+        .message { margin: 5px 0; }
+        .my-msg { color: blue; text-align: right; }
+        .their-msg { color: green; text-align: left; }
+    </style>
+</head>
+<body>
+    <h2>Manager Dashboard</h2>
+    <div id="status" style="color: red">Đang kết nối...</div>
+    
+    <div id="chat-log"></div>
+
+    <input type="text" id="msgInput" placeholder="Nhập tin nhắn..." style="width: 70%">
+    <button onclick="sendMessage()">Gửi</button>
+
+    <script>
+        // 1. Kết nối tới Server (Localhost)
+        const socket = io('http://localhost:3000');
+        const ROOM_ID = 'KH001'; // Phải trùng với Room bên Android
+
+        socket.on('connect', () => {
+            document.getElementById('status').innerText = "Đã kết nối! (ID: " + socket.id + ")";
+            document.getElementById('status').style.color = "green";
+
+            // 2. Manager phải Join vào phòng của khách KH001
+            socket.emit('join_room', ROOM_ID);
+            addLog("System", "Đã tham gia phòng: " + ROOM_ID);
+        });
+
+        // 3. Nhận tin nhắn từ Server
+        socket.on('receive_message', (data) => {
+            addLog(data.sender, data.message);
+        });
+
+        // 4. Gửi tin nhắn
+        function sendMessage() {
+            const input = document.getElementById('msgInput');
+            const msg = input.value;
+            if (msg.trim() === "") return;
+
+            const data = {
+                room: ROOM_ID,
+                sender: 'Manager',
+                message: msg
+            };
+
+            socket.emit('send_message', data);
+            input.value = ''; // Xóa ô nhập
+        }
+
+        // Hàm hiển thị lên màn hình
+        function addLog(sender, msg) {
+            const box = document.getElementById('chat-log');
+            const div = document.createElement('div');
+            div.className = 'message ' + (sender === 'Manager' ? 'my-msg' : 'their-msg');
+            div.innerText = `${sender}: ${msg}`;
+            box.appendChild(div);
+            box.scrollTop = box.scrollHeight; // Tự cuộn xuống dưới
+        }
+    </script>
+</body>
+</html>
